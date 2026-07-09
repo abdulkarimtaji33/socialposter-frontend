@@ -6,6 +6,7 @@ import { api, BusinessProfile } from "@/lib/api";
 const emptyForm = {
   name: "",
   description: "",
+  products: "",
   autoPublish: false,
 };
 
@@ -24,6 +25,7 @@ export default function BusinessPage() {
           setForm({
             name: profile.name ?? "",
             description: profile.description ?? "",
+            products: profile.products ?? "",
             autoPublish: profile.autoPublish ?? false,
           });
         }
@@ -91,6 +93,25 @@ export default function BusinessPage() {
             value={form.description}
             onChange={(e) => update("description", e.target.value)}
           />
+        </label>
+
+        <label className="block">
+          <span className="mb-1 block text-sm font-medium text-gray-700">
+            Products / tools to occasionally spotlight (optional)
+          </span>
+          <textarea
+            rows={4}
+            className="input"
+            placeholder={
+              "One per line, e.g.:\nAI Business Plan Generator (https://cybollic.com/ai-business-plan-generator.html) — free tool that generates a 21-section investor-ready business plan in under 2 minutes"
+            }
+            value={form.products}
+            onChange={(e) => update("products", e.target.value)}
+          />
+          <span className="mt-1 block text-xs text-gray-500">
+            Every generated post has a small random chance of promoting one
+            of these specific products instead of the business in general.
+          </span>
         </label>
 
         <label className="flex items-center gap-2 text-sm">

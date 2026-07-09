@@ -5,6 +5,7 @@ export interface BusinessProfile {
   id: number;
   name: string;
   description: string;
+  products?: string;
   autoPublish: boolean;
 }
 
