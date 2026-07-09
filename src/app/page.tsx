@@ -1,7 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api, imageUrl, LinkedInStatus, Post } from "@/lib/api";
+
+const GENERATION_STAGES = [
+  { afterSeconds: 0, label: "Writing your caption and image idea..." },
+  { afterSeconds: 20, label: "Creating your marketing image..." },
+  { afterSeconds: 60, label: "Still creating your image, almost there..." },
+];
 
 export default function Home() {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -10,8 +16,13 @@ export default function Home() {
   });
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
   const [publishingId, setPublishingId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editCaption, setEditCaption] = useState("");
+  const [editHashtags, setEditHashtags] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const refresh = useCallback(async () => {
     const [postList, status] = await Promise.all([
@@ -28,9 +39,17 @@ export default function Home() {
       .finally(() => setLoading(false));
   }, [refresh]);
 
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, []);
+
   async function handleGenerate() {
     setGenerating(true);
+    setElapsed(0);
     setError(null);
+    timerRef.current = setInterval(() => setElapsed((s) => s + 1), 1000);
     try {
       await api.generatePost();
       await refresh();
@@ -39,6 +58,7 @@ export default function Home() {
         err instanceof Error ? err.message : "Failed to generate post.",
       );
     } finally {
+      if (timerRef.current) clearInterval(timerRef.current);
       setGenerating(false);
     }
   }
@@ -67,6 +87,22 @@ export default function Home() {
     }
   }
 
+  function startEdit(post: Post) {
+    setEditingId(post.id);
+    setEditCaption(post.caption);
+    setEditHashtags(post.hashtags ?? "");
+  }
+
+  async function saveEdit(id: number) {
+    try {
+      await api.updatePost(id, { caption: editCaption, hashtags: editHashtags });
+      setEditingId(null);
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save changes.");
+    }
+  }
+
   async function handleConnectLinkedIn() {
     try {
       const { url } = await api.linkedinAuthUrl();
@@ -86,6 +122,10 @@ export default function Home() {
   if (loading) {
     return <p className="text-gray-500">Loading...</p>;
   }
+
+  const currentStage = [...GENERATION_STAGES]
+    .reverse()
+    .find((s) => elapsed >= s.afterSeconds);
 
   return (
     <div className="space-y-8">
@@ -132,6 +172,15 @@ export default function Home() {
         </button>
       </section>
 
+      {generating && (
+        <div className="flex items-center gap-3 rounded-md border bg-white p-4">
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-900" />
+          <p className="text-sm text-gray-700">
+            {currentStage?.label} ({elapsed}s elapsed)
+          </p>
+        </div>
+      )}
+
       {error && (
         <p className="rounded-md bg-red-50 p-3 text-sm text-red-600">
           {error}
@@ -165,38 +214,85 @@ export default function Home() {
                       {new Date(post.createdAt).toLocaleString()}
                     </span>
                   </div>
-                  <p className="whitespace-pre-wrap text-sm text-gray-800">
-                    {post.caption}
-                  </p>
-                  {post.hashtags && (
-                    <p className="mt-2 text-sm text-blue-700">
-                      {post.hashtags}
-                    </p>
+
+                  {editingId === post.id ? (
+                    <div className="space-y-2">
+                      <textarea
+                        value={editCaption}
+                        onChange={(e) => setEditCaption(e.target.value)}
+                        rows={5}
+                        className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+                      />
+                      <input
+                        value={editHashtags}
+                        onChange={(e) => setEditHashtags(e.target.value)}
+                        className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm text-blue-700"
+                      />
+                    </div>
+                  ) : (
+                    <>
+                      <p className="whitespace-pre-wrap text-sm text-gray-800">
+                        {post.caption}
+                      </p>
+                      {post.hashtags && (
+                        <p className="mt-2 text-sm text-blue-700">
+                          {post.hashtags}
+                        </p>
+                      )}
+                    </>
                   )}
+
                   {post.status === "failed" && post.errorMessage && (
                     <p className="mt-2 text-xs text-red-600">
                       {post.errorMessage}
                     </p>
                   )}
                 </div>
-                <div className="mt-4 flex gap-2">
-                  {post.status !== "published" && (
-                    <button
-                      onClick={() => handlePublish(post.id)}
-                      disabled={publishingId === post.id}
-                      className="rounded-md bg-[#0a66c2] px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
-                    >
-                      {publishingId === post.id
-                        ? "Publishing..."
-                        : "Publish to LinkedIn"}
-                    </button>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {editingId === post.id ? (
+                    <>
+                      <button
+                        onClick={() => saveEdit(post.id)}
+                        className="rounded-md bg-gray-900 px-3 py-1.5 text-sm font-medium text-white"
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={() => setEditingId(null)}
+                        className="rounded-md border px-3 py-1.5 text-sm text-gray-700"
+                      >
+                        Cancel
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      {post.status !== "published" && (
+                        <>
+                          <button
+                            onClick={() => handlePublish(post.id)}
+                            disabled={publishingId === post.id}
+                            className="rounded-md bg-[#0a66c2] px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+                          >
+                            {publishingId === post.id
+                              ? "Publishing..."
+                              : "Publish to LinkedIn"}
+                          </button>
+                          <button
+                            onClick={() => startEdit(post)}
+                            className="rounded-md border px-3 py-1.5 text-sm text-gray-700"
+                          >
+                            Edit
+                          </button>
+                        </>
+                      )}
+                      <button
+                        onClick={() => handleDelete(post.id)}
+                        className="rounded-md border px-3 py-1.5 text-sm text-gray-700"
+                      >
+                        Delete
+                      </button>
+                    </>
                   )}
-                  <button
-                    onClick={() => handleDelete(post.id)}
-                    className="rounded-md border px-3 py-1.5 text-sm text-gray-700"
-                  >
-                    Delete
-                  </button>
                 </div>
               </div>
             </div>

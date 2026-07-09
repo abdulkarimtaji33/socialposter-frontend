@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
+import AccessGate from "@/components/AccessGate";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -44,7 +45,7 @@ export default function RootLayout({
           </nav>
         </header>
         <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-8">
-          {children}
+          <AccessGate>{children}</AccessGate>
         </main>
       </body>
     </html>

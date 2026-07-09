@@ -5,13 +5,7 @@ import { api, BusinessProfile } from "@/lib/api";
 
 const emptyForm = {
   name: "",
-  industry: "",
   description: "",
-  targetAudience: "",
-  tone: "",
-  website: "",
-  location: "",
-  uniqueSellingPoints: "",
   autoPublish: false,
 };
 
@@ -29,13 +23,7 @@ export default function BusinessPage() {
         if (profile) {
           setForm({
             name: profile.name ?? "",
-            industry: profile.industry ?? "",
             description: profile.description ?? "",
-            targetAudience: profile.targetAudience ?? "",
-            tone: profile.tone ?? "",
-            website: profile.website ?? "",
-            location: profile.location ?? "",
-            uniqueSellingPoints: profile.uniqueSellingPoints ?? "",
             autoPublish: profile.autoPublish ?? false,
           });
         }
@@ -79,75 +67,31 @@ export default function BusinessPage() {
       </p>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <Field label="Business name" required>
+        <label className="block">
+          <span className="mb-1 block text-sm font-medium text-gray-700">
+            Business name <span className="text-red-500">*</span>
+          </span>
           <input
             required
             className="input"
             value={form.name}
             onChange={(e) => update("name", e.target.value)}
           />
-        </Field>
+        </label>
 
-        <Field label="Industry">
-          <input
-            className="input"
-            value={form.industry}
-            onChange={(e) => update("industry", e.target.value)}
-          />
-        </Field>
-
-        <Field label="What does your business do?" required>
+        <label className="block">
+          <span className="mb-1 block text-sm font-medium text-gray-700">
+            About your business <span className="text-red-500">*</span>
+          </span>
           <textarea
             required
-            rows={4}
+            rows={10}
             className="input"
+            placeholder="What does your business do, who it's for, your tone of voice, unique selling points, website, location — anything that should shape your marketing posts."
             value={form.description}
             onChange={(e) => update("description", e.target.value)}
           />
-        </Field>
-
-        <Field label="Target audience">
-          <input
-            className="input"
-            value={form.targetAudience}
-            onChange={(e) => update("targetAudience", e.target.value)}
-          />
-        </Field>
-
-        <Field label="Tone of voice">
-          <input
-            className="input"
-            placeholder="e.g. professional, friendly, bold"
-            value={form.tone}
-            onChange={(e) => update("tone", e.target.value)}
-          />
-        </Field>
-
-        <Field label="Unique selling points">
-          <textarea
-            rows={3}
-            className="input"
-            value={form.uniqueSellingPoints}
-            onChange={(e) => update("uniqueSellingPoints", e.target.value)}
-          />
-        </Field>
-
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="Website">
-            <input
-              className="input"
-              value={form.website}
-              onChange={(e) => update("website", e.target.value)}
-            />
-          </Field>
-          <Field label="Location">
-            <input
-              className="input"
-              value={form.location}
-              onChange={(e) => update("location", e.target.value)}
-            />
-          </Field>
-        </div>
+        </label>
 
         <label className="flex items-center gap-2 text-sm">
           <input
@@ -184,24 +128,5 @@ export default function BusinessPage() {
         }
       `}</style>
     </div>
-  );
-}
-
-function Field({
-  label,
-  required,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-sm font-medium text-gray-700">
-        {label} {required && <span className="text-red-500">*</span>}
-      </span>
-      {children}
-    </label>
   );
 }

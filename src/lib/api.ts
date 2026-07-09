@@ -1,15 +1,10 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4200/api';
+const ACCESS_KEY_STORAGE = 'socialposter_access_key';
 
 export interface BusinessProfile {
   id: number;
   name: string;
-  industry?: string;
   description: string;
-  targetAudience?: string;
-  tone?: string;
-  website?: string;
-  location?: string;
-  uniqueSellingPoints?: string;
   autoPublish: boolean;
 }
 
@@ -34,14 +29,43 @@ export interface LinkedInStatus {
   expiresAt?: string;
 }
 
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public status: number,
+  ) {
+    super(message);
+  }
+}
+
+export function getAccessKey(): string {
+  if (typeof window === 'undefined') return '';
+  return window.localStorage.getItem(ACCESS_KEY_STORAGE) ?? '';
+}
+
+export function setAccessKey(key: string): void {
+  window.localStorage.setItem(ACCESS_KEY_STORAGE, key);
+}
+
+export function clearAccessKey(): void {
+  window.localStorage.removeItem(ACCESS_KEY_STORAGE);
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: {
+      'Content-Type': 'application/json',
+      'x-access-key': getAccessKey(),
+      ...options?.headers,
+    },
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(body.message ?? `Request failed with status ${res.status}`);
+    throw new ApiError(
+      body.message ?? `Request failed with status ${res.status}`,
+      res.status,
+    );
   }
   if (res.status === 204) {
     return undefined as T;
@@ -63,6 +87,11 @@ export const api = {
     }),
   listPosts: () => request<Post[]>('/posts'),
   generatePost: () => request<Post>('/posts/generate', { method: 'POST' }),
+  updatePost: (id: number, data: Partial<Pick<Post, 'caption' | 'hashtags'>>) =>
+    request<Post>(`/posts/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
   publishPost: (id: number) =>
     request<Post>(`/posts/${id}/publish`, { method: 'POST' }),
   deletePost: (id: number) =>
