@@ -73,7 +73,7 @@ export default function Home() {
 
   // Sensible default generate-target platforms per business, unless the user picked manually.
   const defaultGenTargets: PostPlatform[] =
-    selectedBusiness?.slug === "cybollic" ? ["linkedin"] : ["facebook", "instagram"];
+    selectedBusiness?.slug === "zenzicas" ? ["linkedin"] : ["facebook", "instagram"];
   const activeGenTargets = genTargets ?? defaultGenTargets;
 
   function toggleGenTarget(p: PostPlatform) {
