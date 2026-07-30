@@ -58,10 +58,15 @@ export default function AccessGate({
       <div className="flex min-h-[60vh] items-center justify-center">
         <form
           onSubmit={handleSubmit}
-          className="w-full max-w-sm space-y-4 rounded-lg border bg-white p-6"
+          className="w-full max-w-sm space-y-4 rounded-[var(--radius-token-lg)] border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[var(--shadow-token-md)]"
         >
-          <h1 className="text-lg font-semibold">Enter access key</h1>
-          <p className="text-sm text-gray-600">
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-token-md)] bg-[var(--accent)] text-sm font-bold text-[var(--accent-foreground)]">
+              SP
+            </span>
+            <h1 className="text-lg font-semibold">Enter access key</h1>
+          </div>
+          <p className="text-sm text-[var(--muted)]">
             This app is protected. Enter the access key to continue.
           </p>
           <input
@@ -69,17 +74,17 @@ export default function AccessGate({
             autoFocus
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+            className="w-full rounded-[var(--radius-token-md)] border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--foreground)] focus-visible:border-[var(--accent)]"
             placeholder="Access key"
           />
           <button
             type="submit"
             disabled={checking}
-            className="w-full rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+            className="w-full rounded-[var(--radius-token-md)] bg-[var(--accent)] px-4 py-2 text-sm font-medium text-[var(--accent-foreground)] transition hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {checking ? "Checking..." : "Continue"}
           </button>
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-sm text-[var(--danger)]">{error}</p>}
         </form>
       </div>
     );

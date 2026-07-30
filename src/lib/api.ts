@@ -3,24 +3,43 @@ const ACCESS_KEY_STORAGE = 'socialposter_access_key';
 
 export interface BusinessProfile {
   id: number;
+  slug: string;
   name: string;
   description: string;
-  products?: string;
+  products?: string | null;
+  metaPromptTemplate?: string | null;
+  linkedinPromptTemplate?: string | null;
   autoPublish: boolean;
+  autoScheduleEnabled: boolean;
+  scheduleCron?: string | null;
+  scheduleTimezone: string;
+  schedulePlatforms: string;
+  lastPostedAt?: string | null;
 }
 
-export type PostStatus = 'draft' | 'published' | 'failed';
+export type PublicationStatus = 'draft' | 'published' | 'failed';
+export type PostPlatform = 'linkedin' | 'facebook' | 'instagram';
+
+export interface PostPublication {
+  id: number;
+  postId: number;
+  platform: PostPlatform;
+  status: PublicationStatus;
+  externalPostId?: string | null;
+  errorMessage?: string | null;
+  publishedAt?: string | null;
+  createdAt: string;
+}
 
 export interface Post {
   id: number;
+  businessId: number | null;
+  platform: PostPlatform;
   imagePrompt: string;
   imageUrl: string;
   caption: string;
   hashtags: string;
-  status: PostStatus;
-  linkedinPostId?: string;
-  errorMessage?: string;
-  publishedAt?: string;
+  publications: PostPublication[];
   createdAt: string;
 }
 
@@ -28,6 +47,15 @@ export interface LinkedInStatus {
   connected: boolean;
   name?: string;
   expiresAt?: string;
+}
+
+export interface Logo {
+  id: number;
+  businessId: number;
+  prompt: string;
+  imageUrl: string;
+  parentLogoId: number | null;
+  createdAt: string;
 }
 
 export class ApiError extends Error {
@@ -80,25 +108,100 @@ export function imageUrl(path: string): string {
 }
 
 export const api = {
+  listBusinesses: () => request<BusinessProfile[]>('/business/all'),
+  getBusinessBySlug: (slug: string) =>
+    request<BusinessProfile | null>(`/business/${slug}`),
+  updateBusiness: (
+    slug: string,
+    data: Partial<
+      Pick<
+        BusinessProfile,
+        | 'name'
+        | 'description'
+        | 'products'
+        | 'metaPromptTemplate'
+        | 'linkedinPromptTemplate'
+        | 'autoPublish'
+        | 'autoScheduleEnabled'
+        | 'scheduleCron'
+        | 'scheduleTimezone'
+        | 'schedulePlatforms'
+      >
+    >,
+  ) =>
+    request<BusinessProfile>(`/business/${slug}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+  // legacy single-business accessors, kept for the default/first business
   getBusiness: () => request<BusinessProfile | null>('/business'),
   saveBusiness: (data: Partial<BusinessProfile>) =>
     request<BusinessProfile>('/business', {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
-  listPosts: () => request<Post[]>('/posts'),
-  generatePost: () => request<Post>('/posts/generate', { method: 'POST' }),
+
+  listPosts: (filter?: { business?: string; platform?: PostPlatform }) => {
+    const params = new URLSearchParams();
+    if (filter?.business) params.set('business', filter.business);
+    if (filter?.platform) params.set('platform', filter.platform);
+    const qs = params.toString();
+    return request<Post[]>(`/posts${qs ? `?${qs}` : ''}`);
+  },
+  /**
+   * Generates one piece of content (image + caption) tuned for `platform`'s tone,
+   * and creates draft publication slots for every platform in `targetPlatforms`
+   * (defaults to just `platform`) so the same asset can be published to several
+   * platforms without regenerating.
+   */
+  generatePost: (params: {
+    business: string;
+    platform: PostPlatform;
+    targetPlatforms?: PostPlatform[];
+  }) => {
+    const search = new URLSearchParams();
+    search.set('business', params.business);
+    search.set('platform', params.platform);
+    if (params.targetPlatforms?.length) {
+      search.set('targetPlatforms', params.targetPlatforms.join(','));
+    }
+    return request<Post>(`/posts/generate?${search.toString()}`, {
+      method: 'POST',
+    });
+  },
   updatePost: (id: number, data: Partial<Pick<Post, 'caption' | 'hashtags'>>) =>
     request<Post>(`/posts/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
     }),
-  publishPost: (id: number) =>
-    request<Post>(`/posts/${id}/publish`, { method: 'POST' }),
+  publishPost: (id: number, platform: PostPlatform) =>
+    request<Post>(`/posts/${id}/publish/${platform}`, { method: 'POST' }),
   deletePost: (id: number) =>
     request<{ success: boolean }>(`/posts/${id}`, { method: 'DELETE' }),
-  linkedinAuthUrl: () => request<{ url: string }>('/linkedin/auth-url'),
-  linkedinStatus: () => request<LinkedInStatus>('/linkedin/status'),
-  linkedinDisconnect: () =>
-    request<{ success: boolean }>('/linkedin/disconnect', { method: 'DELETE' }),
+
+  // LinkedIn is connected per-business.
+  linkedinAuthUrl: (business: string) =>
+    request<{ url: string }>(`/linkedin/auth-url?business=${encodeURIComponent(business)}`),
+  linkedinStatus: (business: string) =>
+    request<LinkedInStatus>(`/linkedin/status/${business}`),
+  linkedinDisconnect: (business: string) =>
+    request<{ success: boolean }>(`/linkedin/disconnect/${business}`, {
+      method: 'DELETE',
+    }),
+
+  // Logo maker
+  listLogos: (business: string) =>
+    request<Logo[]>(`/logo?business=${encodeURIComponent(business)}`),
+  generateLogo: (business: string, brief?: string) =>
+    request<Logo>(`/logo/generate?business=${encodeURIComponent(business)}`, {
+      method: 'POST',
+      body: JSON.stringify({ brief }),
+    }),
+  editLogo: (id: number, instructions: string) =>
+    request<Logo>(`/logo/${id}/edit`, {
+      method: 'POST',
+      body: JSON.stringify({ instructions }),
+    }),
+  deleteLogo: (id: number) =>
+    request<{ success: boolean }>(`/logo/${id}`, { method: 'DELETE' }),
 };
