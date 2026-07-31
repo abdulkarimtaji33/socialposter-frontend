@@ -12,6 +12,7 @@ const emptyForm = {
   products: "",
   metaPromptTemplate: "",
   linkedinPromptTemplate: "",
+  productPostPromptTemplate: "",
   autoPublish: false,
   autoScheduleEnabled: false,
   scheduleCron: "",
@@ -89,6 +90,7 @@ export default function BusinessPage() {
           products: profile?.products ?? "",
           metaPromptTemplate: profile?.metaPromptTemplate ?? "",
           linkedinPromptTemplate: profile?.linkedinPromptTemplate ?? "",
+          productPostPromptTemplate: profile?.productPostPromptTemplate ?? "",
           autoPublish: profile?.autoPublish ?? false,
           autoScheduleEnabled: profile?.autoScheduleEnabled ?? false,
           scheduleCron: profile?.scheduleCron ?? "",
@@ -369,6 +371,27 @@ export default function BusinessPage() {
                   <code>{"{spotlightInstruction}"}</code>. Must still ask for strict JSON
                   with <code>imagePrompt</code>, <code>caption</code>, and{" "}
                   <code>hashtags</code> fields.
+                </span>
+              </label>
+
+              <label className="block">
+                <span className="mb-1 block text-sm font-medium">
+                  Product Post copywriter prompt template
+                </span>
+                <textarea
+                  rows={10}
+                  className="input font-mono text-xs"
+                  placeholder="Leave blank to use the default prompt."
+                  value={form.productPostPromptTemplate}
+                  onChange={(e) => update("productPostPromptTemplate", e.target.value)}
+                />
+                <span className="mt-1 block text-xs text-[var(--subtle)]">
+                  Governs only the copy written from an uploaded product photo (on the
+                  Product Post page), not the image design itself. Leave blank to use the
+                  built-in default. Available placeholders: <code>{"{businessName}"}</code>,{" "}
+                  <code>{"{businessDescription}"}</code>, <code>{"{brief}"}</code>. Must
+                  still ask for strict JSON with <code>hook</code>, <code>ctaText</code>,{" "}
+                  <code>caption</code>, and <code>hashtags</code> fields.
                 </span>
               </label>
             </div>

@@ -77,6 +77,12 @@ export default function RootLayout({
                 >
                   Logo Maker
                 </Link>
+                <Link
+                  href="/product-post"
+                  className="rounded-[var(--radius-token-sm)] px-3 py-1.5 text-sm font-medium text-[var(--muted)] transition hover:bg-[var(--accent-soft)] hover:text-[var(--foreground)]"
+                >
+                  Product Post
+                </Link>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -101,6 +107,12 @@ export default function RootLayout({
               className="rounded-[var(--radius-token-sm)] px-3 py-1.5 text-sm font-medium text-[var(--muted)] hover:bg-[var(--accent-soft)] hover:text-[var(--foreground)]"
             >
               Logo Maker
+            </Link>
+            <Link
+              href="/product-post"
+              className="rounded-[var(--radius-token-sm)] px-3 py-1.5 text-sm font-medium text-[var(--muted)] hover:bg-[var(--accent-soft)] hover:text-[var(--foreground)]"
+            >
+              Product Post
             </Link>
           </div>
         </header>

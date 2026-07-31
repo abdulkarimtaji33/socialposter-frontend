@@ -9,6 +9,7 @@ export interface BusinessProfile {
   products?: string | null;
   metaPromptTemplate?: string | null;
   linkedinPromptTemplate?: string | null;
+  productPostPromptTemplate?: string | null;
   autoPublish: boolean;
   autoScheduleEnabled: boolean;
   scheduleCron?: string | null;
@@ -37,6 +38,8 @@ export interface Post {
   platform: PostPlatform;
   imagePrompt: string;
   imageUrl: string;
+  sourceImageUrl?: string | null;
+  brief?: string | null;
   caption: string;
   hashtags: string;
   publications: PostPublication[];
@@ -81,13 +84,19 @@ export function clearAccessKey(): void {
 }
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  const isFormData = options?.body instanceof FormData;
+  const headers: Record<string, string> = {
+    'x-access-key': getAccessKey(),
+    ...(options?.headers as Record<string, string> | undefined),
+  };
+  // Let the browser set its own multipart boundary; never force JSON for FormData bodies.
+  if (!isFormData && !headers['Content-Type']) {
+    headers['Content-Type'] = 'application/json';
+  }
+
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      'x-access-key': getAccessKey(),
-      ...options?.headers,
-    },
+    headers,
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
@@ -121,6 +130,7 @@ export const api = {
         | 'products'
         | 'metaPromptTemplate'
         | 'linkedinPromptTemplate'
+        | 'productPostPromptTemplate'
         | 'autoPublish'
         | 'autoScheduleEnabled'
         | 'scheduleCron'
@@ -167,6 +177,30 @@ export const api = {
     }
     return request<Post>(`/posts/generate?${search.toString()}`, {
       method: 'POST',
+    });
+  },
+  /**
+   * Generates a post from a real uploaded product photo: a vision-capable
+   * copywriter reads the photo and writes hook/content/CTA copy, then the
+   * same photo is restyled into a designed graphic with that copy baked on.
+   */
+  generatePostFromPhoto: (params: {
+    business: string;
+    photo: File;
+    brief: string;
+    targetPlatforms?: PostPlatform[];
+  }) => {
+    const search = new URLSearchParams();
+    search.set('business', params.business);
+    if (params.targetPlatforms?.length) {
+      search.set('targetPlatforms', params.targetPlatforms.join(','));
+    }
+    const formData = new FormData();
+    formData.set('photo', params.photo);
+    formData.set('brief', params.brief);
+    return request<Post>(`/posts/generate-from-photo?${search.toString()}`, {
+      method: 'POST',
+      body: formData,
     });
   },
   updatePost: (id: number, data: Partial<Pick<Post, 'caption' | 'hashtags'>>) =>
